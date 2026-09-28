@@ -1,6 +1,5 @@
-import 'dart:math' as math;
 
-import 'package:flutter/gestures.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_scene/scene.dart';
 import 'package:vector_math/vector_math.dart' as vm;
@@ -8,11 +7,12 @@ import 'package:vector_math/vector_math.dart' as vm;
 import 'debug.dart';
 import 'main.dart' show HardwareScreen;
 
-/// Escena 3D: cielo, esfera y piso plano. Arrastrar = mirar a los lados,
-/// pellizcar = acercar/alejar.
+/// Escena 3D: cielo, esfera y piso. Arrastrar orbita, pellizcar hace dolly.
 ///
-/// La cámara searma nueva en cada frame (cameraBuilder) porque si se
-/// reusa la instancia el motor se queda con la transformada vieja.
+/// La cámara NO se pasa a SceneView: se arma como un nodo con
+/// CameraComponent, y el OrbitCameraController escribe su transformada con
+/// lookAtFrom en cada update. CameraControls le pasa el input del táctil.
+/// Así el movimiento queda suavizado por el controlador (en vez de saltar).
 class EscenaScreen extends StatefulWidget {
   const EscenaScreen({super.key});
 
@@ -27,14 +27,7 @@ class _EscenaScreenState extends State<EscenaScreen> {
   String _error = '';
   bool _sombras = false;
 
-  // Estado de la cámara (lo lee el builder cada frame).
-  double _yaw = 0.0;
-  double _pitch = 0.28;
-  double _dist = 11.0;
-  double _yaw0 = 0.0;
-  double _pitch0 = 0.0;
-  double _dist0 = 11.0;
-  vm.Vector3 _target = vm.Vector3(0, 1.4, 0);
+  OrbitCameraController? _orbit;
 
   @override
   void initState() {
@@ -47,8 +40,9 @@ class _EscenaScreenState extends State<EscenaScreen> {
       await Scene.initializeStaticResources();
       if (!mounted) return;
 
-      // Cielo BARATO: gradiente. El PhysicalSkySource (scattering
-      // atmosférico full-screen) son 5 fps en gama media.
+      // ── Cielo ──────────────────────────────────────────────────────────
+      // GradientSkySource: el PhysicalSkySource (scattering atmosférico
+      // full-screen) da 5 fps en gama media.
       final cielo = GradientSkySource(
         zenithColor: vm.Vector3(0.20, 0.42, 0.80),
         horizonColor: vm.Vector3(0.75, 0.82, 0.90),
@@ -58,22 +52,21 @@ class _EscenaScreenState extends State<EscenaScreen> {
       );
       _scene.skybox = Skybox(cielo);
 
-      // Luz direccional aparte (barata), sin IBL rebake.
+      // ── Luz ────────────────────────────────────────────────────────────
+      // Solo los overrides que usan los ejemplos: el resto defaults.
       _scene.directionalLight = DirectionalLight(
         direction: vm.Vector3(-0.35, -0.55, 0.7).normalized(),
-        color: vm.Vector3(1.0, 0.96, 0.88),
-        intensity: 2.4,
+        intensity: 3.0,
         castsShadow: _sombras,
-        shadowCascadeCount: 1,
-        shadowMapResolution: 512,
-        shadowMaxDistance: 40.0,
+        shadowMaxDistance: 35.0,
       );
+      _scene.environmentIntensity = 0.6;
 
       _scene.fog.enabled = true;
       _scene.fog.color = vm.Vector3(0.68, 0.76, 0.86);
       _scene.fog.density = 0.010;
 
-      // Esfera: metal pulido, refleja el cielo.
+      // ── Esfera ─────────────────────────────────────────────────────────
       final esfera = Node(
         mesh: Mesh(
           SphereGeometry(radius: 1.6, segments: 48, rings: 24),
@@ -86,7 +79,7 @@ class _EscenaScreenState extends State<EscenaScreen> {
       esfera.position = vm.Vector3(0, 1.7, 0);
       _scene.add(esfera);
 
-      // Piso plano en XZ (mira a +Y).
+      // ── Piso ───────────────────────────────────────────────────────────
       _scene.add(
         Node(
           mesh: Mesh(
@@ -99,40 +92,37 @@ class _EscenaScreenState extends State<EscenaScreen> {
         ),
       );
 
+      // ── Cámara (nodo + componente + controlador) ───────────────────────
+      final camara = Node()
+        ..addComponent(
+          CameraComponent(
+            projection: PerspectiveProjection(
+              fovRadiansY: 55 * vm.degrees2Radians,
+            ),
+            activateOnMount: true,
+          ),
+        )
+        ..addComponent(
+          OrbitCameraController(
+            target: vm.Vector3(0, 1.4, 0),
+            distance: 11.0,
+            polar: 0.3,
+            minDistance: 3.0,
+            maxDistance: 40.0,
+          ),
+        );
+      _orbit = camara.getComponent<OrbitCameraController>();
+      _scene.add(camara);
+
       if (mounted) setState(() => _ready = true);
     } catch (e) {
       if (mounted) setState(() => _error = '$e');
     }
   }
 
-  /// Esférica → cámara, en una instancia nueva.
-  PerspectiveCamera _camara() {
-    final cp = math.cos(_pitch);
-    return PerspectiveCamera(
-      position: vm.Vector3(
-        math.sin(_yaw) * cp * _dist,
-        _target.y + math.sin(_pitch) * _dist,
-        math.cos(_yaw) * cp * _dist,
-      ),
-      target: _target,
-      fovRadiansY: 55 * math.pi / 180,
-    );
-  }
-
-  void _mirar(double dx, double dy) {
-    setState(() {
-      _yaw = _yaw0 + dx;
-      _pitch = (_pitch0 - dy).clamp(-1.35, 1.35);
-    });
-  }
-
-  /// [escala] > 1 = dedos hacia afuera = ACERCAR (divide la distancia).
-  void _zoom(double escala) {
-    setState(() => _dist = (_dist0 / escala).clamp(3.0, 40.0));
-  }
-
   @override
   Widget build(BuildContext context) {
+    final ctrl = _orbit;
     final mr = takeMemoryReport();
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -146,7 +136,11 @@ class _EscenaScreenState extends State<EscenaScreen> {
             color: Colors.white,
             tooltip: 'Menú',
             onSelected: (v) {
-              if (v == 'debug') {
+              if (v == 'sombras') {
+                setState(() => _sombras = !_sombras);
+                final dl = _scene.directionalLight;
+                if (dl != null) dl.castsShadow = _sombras;
+              } else if (v == 'debug') {
                 Navigator.push(
                   context,
                   MaterialPageRoute<void>(builder: (_) => const DebugScreen()),
@@ -156,10 +150,6 @@ class _EscenaScreenState extends State<EscenaScreen> {
                   context,
                   MaterialPageRoute<void>(builder: (_) => const HardwareScreen()),
                 );
-              } else if (v == 'sombras') {
-                setState(() => _sombras = !_sombras);
-                final dl = _scene.directionalLight;
-                if (dl != null) dl.castsShadow = _sombras;
               }
             },
             itemBuilder: (_) => [
@@ -204,46 +194,14 @@ class _EscenaScreenState extends State<EscenaScreen> {
                     textAlign: TextAlign.center),
               ),
             )
-          : !_ready
+          : !_ready || ctrl == null
               ? const Center(child: CircularProgressIndicator())
               : Stack(
                   children: [
                     Positioned.fill(
-                      // Listener (no GestureDetector): la escena se come los
-                      // gestos, pero el Listener translúcido los ve igual.
-                      child: Listener(
-                        behavior: HitTestBehavior.translucent,
-                        onPointerDown: (_) {
-                          _yaw0 = _yaw;
-                          _pitch0 = _pitch;
-                          _dist0 = _dist;
-                        },
-                        onPointerMove: (e) {
-                          if (e.buttons != 0 || true) {
-                            _mirar(e.delta.dx * 0.006, e.delta.dy * 0.006);
-                          }
-                        },
-                        onPointerSignal: (e) {
-                          if (e is PointerScrollEvent) {
-                            _yaw0 = _yaw;
-                            _pitch0 = _pitch;
-                            _dist0 = _dist;
-                            _zoom(1 + e.scrollDelta.dy * 0.0015);
-                          }
-                        },
-                        child: SceneView(
-                          _scene,
-                          cameraBuilder: (elapsed) => _camara(),
-                        ),
-                      ),
-                    ),
-                    // Pellizcar aparte: pinch va por pointer count.
-                    Positioned.fill(
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.translucent,
-                        onScaleUpdate: (d) {
-                          if (d.pointerCount > 1) _zoom(d.scale);
-                        },
+                      child: CameraControls(
+                        controller: ctrl,
+                        child: SceneView(_scene),
                       ),
                     ),
                     Positioned(
@@ -257,8 +215,7 @@ class _EscenaScreenState extends State<EscenaScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          'yaw ${_yaw.toStringAsFixed(2)}  '
-                          'dist ${_dist.toStringAsFixed(1)}  '
+                          'dist ${ctrl.distance.toStringAsFixed(1)}  '
                           'GPU ${(mr.totalBytes / 1048576).toStringAsFixed(0)} MB',
                           style: const TextStyle(
                               color: Colors.white, fontSize: 11),
