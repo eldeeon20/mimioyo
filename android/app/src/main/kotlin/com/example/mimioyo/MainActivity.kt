@@ -75,9 +75,8 @@ class MainActivity : FlutterActivity() {
 
     /** OpenGL ES requerido por la activity, como 3.2 (de 0x00030002). */
     private fun reqGlEs(): String = try {
-        val ai = packageManager.getActivityInfo(packageName, 0)
-        val raw = ai.config.reqGlEsVersion
-        if (raw and 0xffff0000.toInt() == 0) {
+        val raw = packageManager.getActivityInfo(packageName, 0).config.reqGlEsVersion
+        if (raw == 0) {
             "?"
         } else {
             val major = (raw shr 16) and 0xff
