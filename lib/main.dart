@@ -47,7 +47,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
   String _gpuVersion = '?';
   String _openGL = '?';
   bool _vulkanHardware = false;
-  int _glEsFeature = 0;
+  String _glEsFeature = '?';
 
   @override
   void initState() {
@@ -71,8 +71,8 @@ class _HardwareScreenState extends State<HardwareScreen> {
           _gpuVendor = '${datos['gpuVendor'] ?? '?'}';
           _gpuVersion = '${datos['gpuVersion'] ?? '?'}';
           _openGL = '${datos['openGL'] ?? '?'}';
-          _vulkanHardware = datos['vulkanHardware'] == true;
-          _glEsFeature = (datos['openGLEsVersion'] as num?)?.toInt() ?? 0;
+          _vulkanHardware = (datos['vulkanNivel'] as num?)?.toInt() != 0;
+          _glEsFeature = '${datos['openGLEsReq'] ?? '?'}';
         });
       }
     } catch (e) {
@@ -158,7 +158,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
           _seccion('Graficos', [
             _fila('Vulkan', _vulkanHardware ? 'Sí' : 'No'),
             _fila('OpenGL ES', _openGL),
-            _fila('ES (feature)', _glEsFeature > 0 ? '$_glEsFeature' : '—'),
+            _fila('ES (requerido)', _glEsFeature),
           ]),
         ],
       ),

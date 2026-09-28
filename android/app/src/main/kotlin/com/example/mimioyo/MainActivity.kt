@@ -48,23 +48,54 @@ class MainActivity : FlutterActivity() {
         return info
     }
 
+    /** Vulkan pedido por el sistema: 0 = ninguno, 1 = level 0, 2 = level 1. */
+    private fun nivelVulkan(pm: PackageManager): Int = if (
+        Build.VERSION.SDK_INT >= 24 &&
+        pm.hasSystemFeature(PackageManager.FEATURE_VULKAN_HARDWARE_LEVEL)
+    ) {
+        val f = pm.systemAvailableFeatures.firstOrNull {
+            it.name == PackageManager.FEATURE_VULKAN_HARDWARE_LEVEL
+        }
+        if (f != null && f.version > 0) f.version else 0
+    } else {
+        0
+    }
+
+    /** Vulkan que anuncia el driver (flags, p.ej. 0x00400000). */
+    private fun versionVulkan(pm: PackageManager): Int = if (
+        Build.VERSION.SDK_INT >= 24
+    ) {
+        val f = pm.systemAvailableFeatures.firstOrNull {
+            it.name == PackageManager.FEATURE_VULKAN_HARDWARE_VERSION
+        }
+        f?.version ?: 0
+    } else {
+        0
+    }
+
+    /** OpenGL ES requerido por la activity, como 3.2 (de 0x00030002). */
+    private fun reqGlEs(): String = try {
+        val ai = packageManager.getActivityInfo(packageName, 0)
+        val raw = ai.config.reqGlEsVersion
+        if (raw and 0xffff0000.toInt() == 0) {
+            "?"
+        } else {
+            val major = (raw shr 16) and 0xff
+            val minor = (raw shr 8) and 0xff
+            "$major.$minor"
+        }
+    } catch (_: Throwable) {
+        "?"
+    }
+
     /** GL/Vulkan leídos de verdad: renderer por EGL + features del sistema. */
     private fun gpuInfo(): Map<String, Any> {
         val m = HashMap<String, Any>()
         val pm = packageManager
 
-        m["vulkanHardware"] = pm.hasSystemFeature(PackageManager.FEATURE_VULKAN_HARDWARE)
-        m["vulkanVersion"] = if (Build.VERSION.SDK_INT >= 24) {
-            val v = pm.systemAvailableFeatures.firstOrNull {
-                it.name == PackageManager.FEATURE_VULKAN_HARDWARE_LEVEL
-            }
-            if (v != null && v.version > 0) v.version else 0
-        } else {
-            0
-        }
-        m["openGLEsVersion"] = pm.systemAvailableFeatures.firstOrNull {
-            it.name == PackageManager.FEATURE_OPENGL_ES
-        }?.version ?: 0
+        m["vulkanNivel"] = nivelVulkan(pm)
+        m["vulkanVersion"] = versionVulkan(pm)
+        m["openGLEsReq"] = reqGlEs()
 
         var renderer = "?"
         var vendor = "?"
