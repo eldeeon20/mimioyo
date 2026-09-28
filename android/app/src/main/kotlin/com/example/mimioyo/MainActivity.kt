@@ -73,16 +73,6 @@ class MainActivity : FlutterActivity() {
         0
     }
 
-    /** OpenGL ES requerido por la app, como 3.2 (de 0x00030002). */
-    private fun reqGlEs(): String = try {
-        val raw = applicationInfo.reqGlEsVersion
-        val major = (raw shr 16) and 0xff
-        val minor = (raw shr 8) and 0xff
-        if (major == 0) "?" else "$major.$minor"
-    } catch (_: Throwable) {
-        "?"
-    }
-
     /** GL/Vulkan leídos de verdad: renderer por EGL + features del sistema. */
     private fun gpuInfo(): Map<String, Any> {
         val m = HashMap<String, Any>()
@@ -90,7 +80,6 @@ class MainActivity : FlutterActivity() {
 
         m["vulkanNivel"] = nivelVulkan(pm)
         m["vulkanVersion"] = versionVulkan(pm)
-        m["openGLEsReq"] = reqGlEs()
 
         var renderer = "?"
         var vendor = "?"
@@ -143,6 +132,13 @@ class MainActivity : FlutterActivity() {
         m["gpuVendor"] = vendor
         m["gpuVersion"] = version
         m["openGL"] = glEs
+        // La versión de ES sale del propio GL_VERSION ("OpenGL ES 3.2 ...").
+        val es = Regex("OpenGL ES (\\d+)\\.(\\d+)").find(version ?: "")
+        m["openGLEsReq"] = if (es != null) {
+            "${es.groupValues[1]}.${es.groupValues[2]}"
+        } else {
+            "?"
+        }
         m["gpuError"] = error ?: ""
         m["impeller"] = true
         m["flutterGpu"] = true
