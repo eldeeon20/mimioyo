@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'debug.dart';
 import 'escena.dart';
 
 void main() {
@@ -20,7 +19,7 @@ class MimioyoApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const HardwareScreen(),
+      home: const EscenaScreen(),
     );
   }
 }
@@ -91,40 +90,6 @@ class _HardwareScreenState extends State<HardwareScreen> {
         title: const Text('Mimioyo'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.view_in_ar_rounded),
-            tooltip: 'Menú',
-            onSelected: (v) {
-              Navigator.push(
-                context,
-                MaterialPageRoute<void>(
-                  builder: (_) => v == 'escena'
-                      ? const EscenaScreen()
-                      : const DebugScreen(),
-                ),
-              );
-            },
-            itemBuilder: (_) => const [
-              PopupMenuItem(
-                value: 'escena',
-                child: ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.threed_rotation),
-                  title: Text('Escena 3D'),
-                ),
-              ),
-              PopupMenuItem(
-                value: 'debug',
-                child: ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.bug_report_outlined),
-                  title: Text('Debug GL/Vulkan'),
-                ),
-              ),
-            ],
-          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _cargar,
