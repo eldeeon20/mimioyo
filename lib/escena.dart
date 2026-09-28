@@ -106,7 +106,7 @@ class _EscenaScreenState extends State<EscenaScreen> {
   }
 
   /// Esférica → cámara, en una instancia nueva.
-  vm.PerspectiveCamera _camara() {
+  PerspectiveCamera _camara() {
     final cp = math.cos(_pitch);
     return PerspectiveCamera(
       position: vm.Vector3(
