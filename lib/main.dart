@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'debug.dart';
+import 'escena.dart';
+
 void main() {
   runApp(const MimioyoApp());
 }
@@ -42,8 +45,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
   String _gpuRenderer = '?';
   String _gpuVendor = '?';
   String _gpuVersion = '?';
-  bool _vulkan = false;
   String _openGL = '?';
+  bool _vulkanHardware = false;
+  int _glEsFeature = 0;
 
   @override
   void initState() {
@@ -66,8 +70,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
           _gpuRenderer = '${datos['gpuRenderer'] ?? '?'}';
           _gpuVendor = '${datos['gpuVendor'] ?? '?'}';
           _gpuVersion = '${datos['gpuVersion'] ?? '?'}';
-          _vulkan = datos['vulkan'] == true;
           _openGL = '${datos['openGL'] ?? '?'}';
+          _vulkanHardware = datos['vulkanHardware'] == true;
+          _glEsFeature = (datos['openGLEsVersion'] as num?)?.toInt() ?? 0;
         });
       }
     } catch (e) {
@@ -86,6 +91,40 @@ class _HardwareScreenState extends State<HardwareScreen> {
         title: const Text('Mimioyo'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.view_in_ar_rounded),
+            tooltip: 'Menú',
+            onSelected: (v) {
+              Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (_) => v == 'escena'
+                      ? const EscenaScreen()
+                      : const DebugScreen(),
+                ),
+              );
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'escena',
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.threed_rotation),
+                  title: Text('Escena 3D'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'debug',
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.bug_report_outlined),
+                  title: Text('Debug GL/Vulkan'),
+                ),
+              ),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _cargar,
@@ -117,8 +156,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
             _fila('Versión', _gpuVersion),
           ]),
           _seccion('Graficos', [
-            _fila('Vulkan', _vulkan ? 'Sí' : 'No'),
+            _fila('Vulkan', _vulkanHardware ? 'Sí' : 'No'),
             _fila('OpenGL ES', _openGL),
+            _fila('ES (feature)', _glEsFeature > 0 ? '$_glEsFeature' : '—'),
           ]),
         ],
       ),
