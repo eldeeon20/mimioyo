@@ -62,8 +62,6 @@ class _DebugScreenState extends State<DebugScreen> {
               padding: const EdgeInsets.only(bottom: 24),
               children: [
                 _titulo('Gráficos'),
-                _fila('Vulkan (hardware)',
-                    d['vulkanHardware'] == true ? 'Sí' : 'No'),
                 _fila('Vulkan (nivel)', '${d['vulkanNivel'] ?? 0}'),
                 _fila('Vulkan (version)', '${d['vulkanVersion'] ?? 0}'),
                 _fila('OpenGL ES (req)', '${d['openGLEsReq'] ?? '?'}'),
