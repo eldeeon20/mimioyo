@@ -73,16 +73,12 @@ class MainActivity : FlutterActivity() {
         0
     }
 
-    /** OpenGL ES requerido por la activity, como 3.2 (de 0x00030002). */
+    /** OpenGL ES requerido por la app, como 3.2 (de 0x00030002). */
     private fun reqGlEs(): String = try {
-        val raw = packageManager.getActivityInfo(packageName, 0).config.reqGlEsVersion
-        if (raw == 0) {
-            "?"
-        } else {
-            val major = (raw shr 16) and 0xff
-            val minor = (raw shr 8) and 0xff
-            "$major.$minor"
-        }
+        val raw = applicationInfo.reqGlEsVersion
+        val major = (raw shr 16) and 0xff
+        val minor = (raw shr 8) and 0xff
+        if (major == 0) "?" else "$major.$minor"
     } catch (_: Throwable) {
         "?"
     }
@@ -102,11 +98,8 @@ class MainActivity : FlutterActivity() {
         var glEs = "?"
         var error: String? = null
         try {
-            val egl = EGL10::class.java
-                .let { _ ->
-                    javax.microedition.khronos.egl.EGLContext.getEGL()
-                        as javax.microedition.khronos.egl.EGL10
-                }
+            val egl = javax.microedition.khronos.egl.EGLContext.getEGL()
+                as javax.microedition.khronos.egl.EGL10
             val dpy = egl.eglGetDisplay(EGL10.EGL_DEFAULT_DISPLAY)
             val ver = IntArray(2)
             egl.eglInitialize(dpy, ver)
