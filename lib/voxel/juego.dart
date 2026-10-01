@@ -12,6 +12,7 @@ import 'agua.dart';
 import 'bloque.dart';
 import 'chunk.dart';
 import 'controles/botones.dart';
+import 'controles/camara.dart';
 import 'controles/joystick.dart';
 import 'generador.dart';
 import 'jugador.dart';
@@ -61,6 +62,11 @@ class _JuegoScreenState extends State<JuegoScreen>
   bool _agachando = false;
 
   Duration _ultimo = Duration.zero;
+
+  // Contador de FPS.
+  int _frames = 0;
+  double _fps = 0;
+  Duration _fpsDesde = Duration.zero;
 
   @override
   void initState() {
@@ -125,6 +131,13 @@ class _JuegoScreenState extends State<JuegoScreen>
         _remallar(c);
       }
 
+      final orbit = CamaraOrbit(
+        target: _jugador!.cabeza,
+        distance: 10.0,
+        polar: 0.7,
+        minDistance: 3.0,
+        maxDistance: 30.0,
+      );
       final camara = Node()
         ..addComponent(
           CameraComponent(
@@ -134,16 +147,8 @@ class _JuegoScreenState extends State<JuegoScreen>
             activateOnMount: true,
           ),
         )
-        ..addComponent(
-          OrbitCameraController(
-            target: _jugador!.cabeza,
-            distance: 10.0,
-            polar: 0.7,
-            minDistance: 3.0,
-            maxDistance: 30.0,
-          ),
-        );
-      _orbit = camara.getComponent<OrbitCameraController>();
+        ..addComponent(orbit);
+      _orbit = orbit;
       _camara = camara;
       _scene.add(camara);
 
@@ -201,6 +206,15 @@ class _JuegoScreenState extends State<JuegoScreen>
     if (!_ready) {
       _ultimo = t;
       return;
+    }
+    _frames++;
+    if (_fpsDesde == Duration.zero) {
+      _fpsDesde = t;
+    } else if (t - _fpsDesde >= const Duration(seconds: 1)) {
+      _fps = _frames * 1000 / (t - _fpsDesde).inMilliseconds;
+      _frames = 0;
+      _fpsDesde = t;
+      if (mounted) setState(() {});
     }
     var dt = (t - _ultimo).inMicroseconds / 1e6;
     _ultimo = t;
@@ -426,6 +440,26 @@ class _JuegoScreenState extends State<JuegoScreen>
                                   color: Colors.white, fontSize: 11)),
                         ),
                       ),
+                    // Contador de FPS (arriba a la derecha).
+                    Positioned(
+                      right: 12,
+                      top: kToolbarHeight + 52,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${_fps.toStringAsFixed(0)} FPS',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
                     // Joystick (izquierda, sobre la barra).
                     Positioned(
                       left: 16,
