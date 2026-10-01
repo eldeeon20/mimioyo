@@ -177,19 +177,21 @@ class _JuegoScreenState extends State<JuegoScreen>
   void _remallar(Chunk c) {
     final par = mallarChunk(c, _mundo.get);
     final clave = Mundo.clave(c.cx, c.cz);
-    final op = _nodosOp[clave];
-    if (op != null) {
-      op.mesh = par.opaco == null
+    final dOp = par.opaco;
+    final nodo = _nodosOp[clave];
+    if (nodo != null) {
+      nodo.mesh = dOp == null
           ? null
-          : Mesh(MeshGeometry.fromMeshData(par.opaco), _material);
-      op.markBoundsDirty();
+          : Mesh(MeshGeometry.fromMeshData(dOp), _material);
+      nodo.markBoundsDirty();
     }
-    final ag = _nodosAg[clave];
-    if (ag != null) {
-      ag.mesh = par.agua == null
+    final dAg = par.agua;
+    final nodoAg = _nodosAg[clave];
+    if (nodoAg != null) {
+      nodoAg.mesh = dAg == null
           ? null
-          : Mesh(MeshGeometry.fromMeshData(par.agua), _materialAgua);
-      ag.markBoundsDirty();
+          : Mesh(MeshGeometry.fromMeshData(dAg), _materialAgua);
+      nodoAg.markBoundsDirty();
     }
   }
 
