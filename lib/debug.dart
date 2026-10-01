@@ -127,7 +127,7 @@ class _DebugScreenState extends State<DebugScreen> {
                 '${total.toStringAsFixed(1)} GB'),
             const SizedBox(height: 4),
             LinearProgressIndicator(
-              value: total > 0 ? (v / total).clamp(0.0, 1.0) : 0,
+              value: total > 0 ? (v / total).clamp(0.0, 1.0).toDouble() : 0,
               minHeight: 8,
               borderRadius: BorderRadius.circular(4),
             ),

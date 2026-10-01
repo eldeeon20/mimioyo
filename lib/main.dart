@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'escena.dart';
+import 'voxel/voxel.dart';
 
 void main() {
   runApp(const MimioyoApp());
@@ -19,7 +19,7 @@ class MimioyoApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const EscenaScreen(),
+      home: const JuegoScreen(),
     );
   }
 }
@@ -178,7 +178,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
           Text('$etiqueta: ${(fraccion * 100).toStringAsFixed(0)}%'),
           const SizedBox(height: 4),
           LinearProgressIndicator(
-            value: fraccion.clamp(0.0, 1.0),
+            value: fraccion.clamp(0.0, 1.0).toDouble(),
             minHeight: 8,
             borderRadius: BorderRadius.circular(4),
           ),
